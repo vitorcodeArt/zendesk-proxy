@@ -14,14 +14,27 @@ load_dotenv()
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 jwt = JWTManager(app)
-CORS(app)  # Permite CORS de qualquer origem (para teste)
+CORS(app, origins=["https://conecta.bcrcx.com", "*"])  # Permite CORS para teste
 
-CORS(app, origins=["https://conecta.bcrcx.com"])
-
-
-ZENDESK_DOMAIN = os.getenv("ZENDESK_SUBDOMAIN")  # ex: conecta.zendesk.com
+ZENDESK_DOMAIN = os.getenv("ZENDESK_SUBDOMAIN")  # ex: conecta.bcrcx.com
 ZENDESK_EMAIL = os.getenv("ZENDESK_EMAIL")
 ZENDESK_TOKEN = os.getenv("ZENDESK_API_TOKEN")
+
+# =========================
+# LOGIN (gera JWT a partir de usuário e senha)
+# =========================
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+
+    # Aqui você pode validar contra uma lista de teste ou banco
+    if username == os.getenv("TEST_USERNAME") and password == os.getenv("TEST_PASSWORD"):
+        token = create_access_token(identity={"username": username})
+        return jsonify(access_token=token)
+    
+    return jsonify({"msg": "Credenciais inválidas"}), 401
 
 # =========================
 # Função auxiliar para chamar Zendesk
@@ -139,23 +152,6 @@ def create_post():
     data = request.get_json()
     r = zendesk_request("POST", "/api/v2/community/posts", json=data)
     return jsonify(r.json()), r.status_code
-
-# =========================
-# Autologin (gera JWT por e-mail/nome)
-# =========================
-@app.route("/autologin", methods=["GET"])
-def autologin():
-    email = request.args.get("email", "guest@zendesk.com")
-    name = request.args.get("name", "Visitante")
-    token = create_access_token(identity={"email": email, "name": name})
-    return jsonify(access_token=token)
-
-# Exemplo de rota protegida
-@app.route("/me", methods=["GET"])
-@jwt_required()
-def me():
-    user = get_jwt_identity()
-    return jsonify(user=user)
 
 # =========================
 # Inicialização
