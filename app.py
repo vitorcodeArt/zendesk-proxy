@@ -102,8 +102,7 @@ def get_badge_assignments():
 
 @app.route("/api/users/<int:user_id>", methods=["GET"])
 @jwt_required()
-def get_user():
-    user_id = request.args.get("user_id")
+def get_user(user_id):  # <- agora recebe direto do path
     r = zendesk_request("GET", f"/api/v2/users/{user_id}")
     return jsonify(r.json()), r.status_code
 
