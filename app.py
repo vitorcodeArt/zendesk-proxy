@@ -113,6 +113,12 @@ def upvote_post(post_id):
     r = zendesk_request("POST", f"/api/v2/community/posts/{post_id}/up")
     return jsonify(r.json()), r.status_code
 
+@app.route("/api/community/posts", methods=["GET"])
+@jwt_required()
+def get_post():
+    r = zendesk_request("GET", "/api/v2/community/posts")
+    return jsonify(r.json()), r.status_code
+
 
 @app.route("/api/gather/badges/<int:badge_id>", methods=["GET"])
 @jwt_required()
@@ -153,12 +159,6 @@ def create_post():
     r = zendesk_request("POST", "/api/v2/community/posts", json=data)
     return jsonify(r.json()), r.status_code
 
-@app.route("/api/community/posts", methods=["GET"])
-@jwt_required()
-def get_post():
-    data = request.get_json()
-    r = zendesk_request("GET", "/api/v2/community/posts", json=data)
-    return jsonify(r.json()), r.status_code
 
 
 # =========================
