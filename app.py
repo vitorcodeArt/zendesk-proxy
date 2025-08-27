@@ -100,6 +100,13 @@ def get_badge_assignments():
     r = zendesk_request("GET", f"/api/v2/gather/badge_assignments?user_id={user_id}")
     return jsonify(r.json()), r.status_code
 
+@app.route("/api/users/<int:user_id>", methods=["GET"])
+@jwt_required()
+def get_user():
+    user_id = request.args.get("user_id")
+    r = zendesk_request("GET", f"/api/v2/users/{user_id}")
+    return jsonify(r.json()), r.status_code
+
 
 @app.route("/api/users/<int:user_id>", methods=["PUT"])
 @jwt_required()
