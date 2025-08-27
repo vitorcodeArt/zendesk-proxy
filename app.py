@@ -4,6 +4,7 @@ from flask import Flask, jsonify, request
 from flask_jwt_extended import (
     create_access_token, jwt_required, get_jwt_identity, JWTManager
 )
+from flask_cors import CORS
 from dotenv import load_dotenv
 
 # =========================
@@ -13,6 +14,10 @@ load_dotenv()
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 jwt = JWTManager(app)
+CORS(app)  # Permite CORS de qualquer origem (para teste)
+
+CORS(app, origins=["https://conecta.bcrcx.com"])
+
 
 ZENDESK_DOMAIN = os.getenv("ZENDESK_SUBDOMAIN")  # ex: conecta.zendesk.com
 ZENDESK_EMAIL = os.getenv("ZENDESK_EMAIL")
