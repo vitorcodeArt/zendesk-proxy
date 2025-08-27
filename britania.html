@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Atualização do atendimento #{{ticket.id}}</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    "
+  >
+    <div
+      style="
+        width: 525pt;
+        max-width: 100%;
+        margin: auto;
+        font-family: Tahoma, Arial, Helvetica, sans-serif;
+        color: #121212;
+      "
+    >
+      <!-- HEADER seguro em tabela -->
+      <table
+        role="presentation"
+        cellpadding="0"
+        cellspacing="0"
+        border="0"
+        width="100%"
+        style="background: #ffffff; margin: 0; padding: 0"
+      >
+        <tr>
+          <td align="center" style="padding: 12px 0">
+            <a
+              href="https://www.britania.com.br/"
+              target="_blank"
+              style="text-decoration: none"
+            >
+              <img
+                src="https://philco.vteximg.com.br/arquivos/britania-logo-email.png"
+                alt="Britânia"
+                style="
+                  width: 180pt;
+                  padding: 15pt;
+                  height: auto;
+                  display: block;
+                  margin: 0 auto;
+                "
+              />
+            </a>
+          </td>
+        </tr>
+      </table>
+      <hr style="border: none; border-top: 3px solid #d7ae5c; margin: 0" />
+      <!-- CONTEÚDO -->
+      <div style="text-align: center; padding: 12pt 11pt">
+        <p style="margin: 6pt 0">
+          <b
+            ><span style="color: #0e436e; font-size: 14pt"
+              >Olá {{ticket.requester.first_name}}, como está?</span
+            ></b
+          >
+        </p>
+        <p style="margin: 6pt 0; font-size: 12pt; line-height: 1.35">
+          Sua solicitação <b>#{{ticket.id}}</b> foi atualizada.
+        </p>
+        <!-- Último comentário (centralizado) -->
+        <div
+          style="
+            text-align: center;
+            margin: 6pt 0;
+            font-size: 12pt;
+            line-height: 1.35;
+          "
+        >
+          {{ticket.latest_public_comment_html}}
+        </div>
+        <!-- Assinatura -->
+        <p
+          style="
+            margin: 6pt 0 0 0;
+            font-size: 12pt;
+            color: #6b6b6b;
+            line-height: 1.35;
+          "
+        >
+          Atenciosamente,<br /><b>Atendimento Britânia</b>
+        </p>
+      </div>
+      <!-- RODAPÉ -->
+      <hr style="border: none; border-top: 9px solid #d7ae5c; margin: 0" />
+      <div
+        style="
+          background: #f8f8f8;
+          padding: 10pt;
+          text-align: center;
+          font-size: 10pt;
+          line-height: 1.2;
+          color: #555;
+        "
+      >
+        <p style="margin: 4pt 0">
+          Atenção: Este é um e-mail automático e não deve ser respondido.
+        </p>
+        <p style="margin: 4pt 0">
+          Imagens encontradas no e-mail são meramente ilustrativas.
+        </p>
+        <p style="margin: 4pt 0">
+          © 2023 BRITÂNIA ELETRODOMÉSTICOS S.A. – Todos os direitos
+          reservados.<br />
+          Rua Dona Francisca, Nº 12.340 – Pirabeiraba – CEP: 89239-270 Joinville
+          – SC – CNPJ: 76.492.701/0007-42
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -56,12 +56,17 @@ def delete_post(post_id):
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
-@app.route("/api/help_center/users/<int:user_id>/user_subscriptions", methods=["GET"])
+@app.route("/api/help_center/users/<int:user_id>/user_subscriptions?type=followers", methods=["GET"])
 @jwt_required()
-def user_subscriptions(user_id):
-    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions")
+def user_subscriptions_follower(user_id):
+    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followers")
     return jsonify(r.json()), r.status_code
 
+@app.route("/api/help_center/users/<int:user_id>/user_subscriptions?type=followings", methods=["GET"])
+@jwt_required()
+def user_subscriptions_following(user_id):
+    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followings")
+    return jsonify(r.json()), r.status_code
 
 @app.route("/api/community/posts/<int:post_id>/comments", methods=["POST"])
 @jwt_required()
