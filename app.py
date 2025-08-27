@@ -1,7 +1,7 @@
 import os
 import requests
 from flask import Flask, jsonify, request
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -158,6 +158,23 @@ def create_post():
     data = request.get_json()
     r = zendesk_request("POST", "/api/v2/community/posts", json=data)
     return jsonify(r.json()), r.status_code
+
+@app.route("/autologin", methods=["GET"])
+def autologin():
+    # Pega email e nome do usuário do Guide
+    email = request.args.get("email", "guest@zendesk.com")
+    name = request.args.get("name", "Visitante")
+
+    # Gera token JWT com a identidade do usuário real
+    token = create_access_token(identity={"email": email, "name": name})
+    return jsonify(access_token=token)
+
+# Exemplo de rota protegida
+@app.route("/me", methods=["GET"])
+@jwt_required()
+def me():
+    user = get_jwt_identity()
+    return jsonify(user=user)
 
 
 
