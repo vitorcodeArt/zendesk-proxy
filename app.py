@@ -2,7 +2,7 @@ import os
 import requests
 from flask import Flask, jsonify, request
 from flask_jwt_extended import (
-    create_access_token, jwt_required, get_jwt_identity, JWTManager
+    create_access_token, jwt_required, JWTManager
 )
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -14,10 +14,7 @@ load_dotenv()
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 jwt = JWTManager(app)
-CORS(app)  # Permite CORS de qualquer origem (para teste)
-
-CORS(app, origins=["https://conecta.bcrcx.com"])
-
+CORS(app)
 
 ZENDESK_DOMAIN = os.getenv("ZENDESK_SUBDOMAIN")
 ZENDESK_EMAIL = os.getenv("ZENDESK_EMAIL")
@@ -34,7 +31,6 @@ def login():
         return jsonify(access_token=token)
     return jsonify({"msg": "Credenciais inválidas"}), 401
 
-
 # =========================
 # Função auxiliar para chamar Zendesk
 # =========================
@@ -44,44 +40,63 @@ def zendesk_request(method, endpoint, **kwargs):
     response = requests.request(method, url, auth=auth, **kwargs)
     return response
 
+# =========================
+# Função genérica de paginação
+# =========================
+def zendesk_paginated_request(endpoint, page=None, per_page=25):
+    params = {}
+    if page:
+        params["page"] = page
+    params["per_page"] = per_page
+
+    r = zendesk_request("GET", endpoint, params=params)
+    data = r.json()
+
+    # Substitui next_page para apontar para o proxy
+    if "next_page" in data and data["next_page"]:
+        data["next_page"] = f"{request.path}?page={page+1 if page else 2}&per_page={per_page}"
+
+    return data, r.status_code
 
 # =========================
-# Rotas proxy para Zendesk
+# Rotas paginadas
 # =========================
-
-@app.route("/api/community/posts/<int:post_id>", methods=["DELETE"])
+@app.route("/api/search/users", methods=["GET"])
 @jwt_required()
-def delete_post(post_id):
-    r = zendesk_request("DELETE", f"/api/v2/community/posts/{post_id}")
-    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+def search_users():
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 25))
+    query = "status_colaborador:ativo type:user"
+    data, status = zendesk_paginated_request(f"/api/v2/search.json?query={query}", page, per_page)
+    return jsonify(data), status
 
-
-@app.route("/api/help_center/users/<int:user_id>/user_subscriptions?type=followers", methods=["GET"])
+@app.route("/api/community/posts", methods=["GET"])
 @jwt_required()
-def user_subscriptions_follower(user_id):
-    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followers")
+def get_posts():
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 25))
+    data, status = zendesk_paginated_request("/api/v2/community/posts", page, per_page)
+    return jsonify(data), status
+
+@app.route("/api/help_center/users/<int:user_id>/user_subscriptions", methods=["GET"])
+@jwt_required()
+def user_subscriptions(user_id):
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 25))
+    type_sub = request.args.get("type", "followers")
+    data, status = zendesk_paginated_request(
+        f"/api/v2/help_center/users/{user_id}/user_subscriptions?type={type_sub}", page, per_page
+    )
+    return jsonify(data), status
+
+# =========================
+# Rotas padrão sem paginação
+# =========================
+@app.route("/api/users/<int:user_id>", methods=["GET"])
+@jwt_required()
+def get_user(user_id):
+    r = zendesk_request("GET", f"/api/v2/users/{user_id}")
     return jsonify(r.json()), r.status_code
-
-@app.route("/api/help_center/users/<int:user_id>/user_subscriptions?type=followings", methods=["GET"])
-@jwt_required()
-def user_subscriptions_following(user_id):
-    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followings")
-    return jsonify(r.json()), r.status_code
-
-@app.route("/api/community/posts/<int:post_id>/comments", methods=["POST"])
-@jwt_required()
-def create_comment(post_id):
-    data = request.get_json()
-    r = zendesk_request("POST", f"/api/v2/community/posts/{post_id}/comments", json=data)
-    return jsonify(r.json()), r.status_code
-
-
-@app.route("/api/community/posts/<int:post_id>/votes", methods=["GET"])
-@jwt_required()
-def get_votes(post_id):
-    r = zendesk_request("GET", f"/api/v2/community/posts/{post_id}/votes")
-    return jsonify(r.json()), r.status_code
-
 
 @app.route("/api/gather/badges", methods=["GET"])
 @jwt_required()
@@ -89,14 +104,11 @@ def get_badges():
     r = zendesk_request("GET", "/api/v2/gather/badges")
     return jsonify(r.json()), r.status_code
 
-
-@app.route("/api/search/users", methods=["GET"])
+@app.route("/api/gather/badges/<int:badge_id>", methods=["GET"])
 @jwt_required()
-def search_users():
-    query = "status_colaborador:ativo type:user"
-    r = zendesk_request("GET", f"/api/v2/search.json?query={query}")
+def get_badge(badge_id):
+    r = zendesk_request("GET", f"/api/v2/gather/badges/{badge_id}")
     return jsonify(r.json()), r.status_code
-
 
 @app.route("/api/gather/badge_assignments", methods=["GET"])
 @jwt_required()
@@ -105,53 +117,8 @@ def get_badge_assignments():
     r = zendesk_request("GET", f"/api/v2/gather/badge_assignments?user_id={user_id}")
     return jsonify(r.json()), r.status_code
 
-@app.route("/api/users/<int:user_id>", methods=["GET"])
-@jwt_required()
-def get_user(user_id):  # <- agora recebe direto do path
-    r = zendesk_request("GET", f"/api/v2/users/{user_id}")
-    return jsonify(r.json()), r.status_code
-
-
-@app.route("/api/users/<int:user_id>", methods=["PUT"])
-@jwt_required()
-def update_user(user_id):
-    data = request.get_json()
-    r = zendesk_request("PUT", f"/api/v2/users/{user_id}.json", json=data)
-    return jsonify(r.json()), r.status_code
-
-
-@app.route("/api/help_center/votes/<int:vote_id>", methods=["DELETE"])
-@jwt_required()
-def delete_vote(vote_id):
-    r = zendesk_request("DELETE", f"/api/v2/help_center/votes/{vote_id}")
-    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
-
-
-@app.route("/api/community/posts/<int:post_id>/up", methods=["POST"])
-@jwt_required()
-def upvote_post(post_id):
-    r = zendesk_request("POST", f"/api/v2/community/posts/{post_id}/up")
-    return jsonify(r.json()), r.status_code
-
-@app.route("/api/community/posts", methods=["GET"])
-@jwt_required()
-def get_post():
-    r = zendesk_request("GET", "/api/v2/community/posts")
-    return jsonify(r.json()), r.status_code
-
-
-@app.route("/api/gather/badges/<int:badge_id>", methods=["GET"])
-@jwt_required()
-def get_badge(badge_id):
-    r = zendesk_request("GET", f"/api/v2/gather/badges/{badge_id}")
-    return jsonify(r.json()), r.status_code
-
-
-@app.route("/api/user_fields/<int:field_id>", methods=["GET"])
-@jwt_required()
-def get_user_field(field_id):
-    r = zendesk_request("GET", f"/api/v2/user_fields/{field_id}")
-    return jsonify(r.json()), r.status_code
+# Outras rotas CRUD padrão permanecem iguais
+# Exemplo: criar posts, comentários, upvotes, upload de imagens, etc.
 
 
 @app.route("/api/guide/user_images/uploads", methods=["POST"])
@@ -180,12 +147,45 @@ def create_post():
     return jsonify(r.json()), r.status_code
 
 
+@app.route("/api/users/<int:user_id>", methods=["PUT"])
+@jwt_required()
+def update_user(user_id):
+    data = request.get_json()
+    r = zendesk_request("PUT", f"/api/v2/users/{user_id}.json", json=data)
+    return jsonify(r.json()), r.status_code
+
+
+@app.route("/api/help_center/votes/<int:vote_id>", methods=["DELETE"])
+@jwt_required()
+def delete_vote(vote_id):
+    r = zendesk_request("DELETE", f"/api/v2/help_center/votes/{vote_id}")
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+
+@app.route("/api/community/posts/<int:post_id>/up", methods=["POST"])
+@jwt_required()
+def upvote_post(post_id):
+    r = zendesk_request("POST", f"/api/v2/community/posts/{post_id}/up")
+    return jsonify(r.json()), r.status_code
+
+
+@app.route("/api/community/posts/<int:post_id>/comments", methods=["POST"])
+@jwt_required()
+def create_comment(post_id):
+    data = request.get_json()
+    r = zendesk_request("POST", f"/api/v2/community/posts/{post_id}/comments", json=data)
+    return jsonify(r.json()), r.status_code
+
+
+@app.route("/api/community/posts/<int:post_id>", methods=["DELETE"])
+@jwt_required()
+def delete_post(post_id):
+    r = zendesk_request("DELETE", f"/api/v2/community/posts/{post_id}")
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 # =========================
 # Inicialização
 # =========================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Render define PORT
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
-
