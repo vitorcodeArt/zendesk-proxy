@@ -31,7 +31,7 @@ def login():
 
     # Aqui você pode validar contra uma lista de teste ou banco
     if username == os.getenv("TEST_USERNAME") and password == os.getenv("TEST_PASSWORD"):
-        token = create_access_token(identity={"username": username})
+        token = create_access_token(identity=str(username))
         return jsonify(access_token=token)
     
     return jsonify({"msg": "Credenciais inválidas"}), 401
