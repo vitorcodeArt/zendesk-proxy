@@ -101,8 +101,25 @@ def get_user(user_id):
 @app.route("/api/gather/badges", methods=["GET"])
 @jwt_required()
 def get_badges():
-    r = zendesk_request("GET", "/api/v2/gather/badges")
-    return jsonify(r.json()), r.status_code
+    all_badges = []
+    endpoint = "/api/v2/gather/badges"
+    
+    while endpoint:
+        r = zendesk_request("GET", endpoint)
+        
+        # Se não for sucesso, retorna erro bruto
+        if r.status_code != 200:
+            return jsonify({"error": r.text}), r.status_code
+
+        data = r.json()
+        all_badges.extend(data.get("badges", []))
+        endpoint = data.get("next_page")
+        
+        # Zendesk retorna URL absoluta no next_page, precisamos transformar em relativo
+        if endpoint:
+            endpoint = endpoint.replace(f"https://{ZENDESK_DOMAIN}.com", "")
+    
+    return jsonify({"badges": all_badges})
 
 @app.route("/api/gather/badges/<int:badge_id>", methods=["GET"])
 @jwt_required()
