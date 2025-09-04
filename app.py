@@ -77,12 +77,12 @@ def get_badges():
     r = zendesk_request("GET", "/api/v2/gather/badges")
     return jsonify(r.json()), r.status_code
 
-app.route("/api/gather/badge_assignments/<int:user_id>", methods=["GET"])
+@app.route("/api/gather/badge_assignments/user_id/<int:user_id>", methods=["GET"])
 @jwt_required()
 def get_badge_assignments(user_id):
-
     r = zendesk_request("GET", f"/api/v2/gather/badge_assignments?user_id={user_id}")
     return jsonify(r.json()), r.status_code
+
 
 
 @app.route("/api/help_center/users/<int:user_id>/user_subscriptions/followings", methods=["GET"])
