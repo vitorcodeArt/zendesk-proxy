@@ -56,10 +56,16 @@ def delete_post(post_id):
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
-@app.route("/api/help_center/users/<int:user_id>/user_subscriptions", methods=["GET"])
+@app.route("/api/help_center/users/<int:user_id>/user_subscriptions?type=followings", methods=["GET"])
 @jwt_required()
-def user_subscriptions(user_id):
-    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions")
+def user_subscriptions_followings(user_id):
+    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followings")
+    return jsonify(r.json()), r.status_code
+
+@app.route("/api/help_center/users/<int:user_id>/user_subscriptions?type=followers", methods=["GET"])
+@jwt_required()
+def user_subscriptions_followers(user_id):
+    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followers")
     return jsonify(r.json()), r.status_code
 
 
@@ -93,17 +99,14 @@ def search_users():
     return jsonify(r.json()), r.status_code
 
 
-@app.route("/api/gather/badge_assignments", methods=["GET"])
+@app.route("/api/gather/badge_assignments?user_id=<int:user_id>", methods=["GET"])
 @jwt_required()
-def get_badge_assignments():
-    user_id = request.args.get("user_id")
+def get_badge_assignments(user_id):
     r = zendesk_request("GET", f"/api/v2/gather/badge_assignments?user_id={user_id}")
     return jsonify(r.json()), r.status_code
 
 @app.route("/api/users/<int:user_id>", methods=["GET"])
 @jwt_required()
-def get_user():
-    user_id = request.args.get("user_id")
 def get_user(user_id):  # <- agora recebe direto do path
     r = zendesk_request("GET", f"/api/v2/users/{user_id}")
     return jsonify(r.json()), r.status_code
