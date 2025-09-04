@@ -56,19 +56,6 @@ def delete_post(post_id):
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
-@app.route("/api/help_center/users/<int:user_id>/user_subscriptions?type=followings", methods=["GET"])
-@jwt_required()
-def user_subscriptions_followings(user_id):
-    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followings")
-    return jsonify(r.json()), r.status_code
-
-@app.route("/api/help_center/users/<int:user_id>/user_subscriptions?type=followers", methods=["GET"])
-@jwt_required()
-def user_subscriptions_followers(user_id):
-    r = zendesk_request("GET", f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followers")
-    return jsonify(r.json()), r.status_code
-
-
 @app.route("/api/community/posts/<int:post_id>/comments", methods=["POST"])
 @jwt_required()
 def create_comment(post_id):
@@ -90,6 +77,35 @@ def get_badges():
     r = zendesk_request("GET", "/api/v2/gather/badges")
     return jsonify(r.json()), r.status_code
 
+app.route("/api/gather/badge_assignments", methods=["GET"])
+@jwt_required()
+def get_badge_assignments():
+    user_id = request.args.get("user_id", type=int)
+    if not user_id:
+        return jsonify({"error": "user_id é obrigatório"}), 400
+
+    r = zendesk_request("GET", f"/api/v2/gather/badge_assignments?user_id={user_id}")
+    return jsonify(r.json()), r.status_code
+
+
+@app.route("/api/help_center/users/<int:user_id>/user_subscriptions/followings", methods=["GET"])
+@jwt_required()
+def user_subscriptions_followings(user_id):
+    r = zendesk_request(
+        "GET",
+        f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followings"
+    )
+    return jsonify(r.json()), r.status_code
+
+
+@app.route("/api/help_center/users/<int:user_id>/user_subscriptions/followers", methods=["GET"])
+@jwt_required()
+def user_subscriptions_followers(user_id):
+    r = zendesk_request(
+        "GET",
+        f"/api/v2/help_center/users/{user_id}/user_subscriptions?type=followers"
+    )
+    return jsonify(r.json()), r.status_code
 
 @app.route("/api/search/users", methods=["GET"])
 @jwt_required()
@@ -98,12 +114,6 @@ def search_users():
     r = zendesk_request("GET", f"/api/v2/search.json?query={query}")
     return jsonify(r.json()), r.status_code
 
-
-@app.route("/api/gather/badge_assignments?user_id=<int:user_id>", methods=["GET"])
-@jwt_required()
-def get_badge_assignments(user_id):
-    r = zendesk_request("GET", f"/api/v2/gather/badge_assignments?user_id={user_id}")
-    return jsonify(r.json()), r.status_code
 
 @app.route("/api/users/<int:user_id>", methods=["GET"])
 @jwt_required()
