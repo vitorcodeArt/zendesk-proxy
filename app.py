@@ -18,8 +18,11 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 jwt = JWTManager(app)
 CORS(app)  # Permite CORS de qualquer origem (para teste)
 
-CORS(app, origins=["https://conecta.bcrcx.com"])
-
+CORS(
+    app,
+    resources={r"/api/*": {"origins": "https://conecta.bcrcx.com"}},
+    supports_credentials=True,
+)
 
 ZENDESK_DOMAIN = os.getenv("ZENDESK_SUBDOMAIN")
 ZENDESK_EMAIL = os.getenv("ZENDESK_EMAIL")
@@ -88,8 +91,14 @@ def get_badges():
 @app.route("/api/gather/badge_assignments/user_id/<int:user_id>", methods=["GET"])
 @jwt_required()
 def get_badge_assignments(user_id):
-    r = zendesk_request("GET", f"/api/v2/gather/badge_assignments?user_id={user_id}")
-    return jsonify(r.json()), r.status_code
+    try:
+        r = zendesk_request("GET", f"/api/v2/gather/badge_assignments?user_id={user_id}")
+        data = r.json()
+        return jsonify(data), r.status_code
+    except Exception as e:
+        print(f"Erro ao buscar badge_assignments: {e}")
+        return jsonify({"error": "Falha ao buscar badges"}), 502
+
 
 
 
