@@ -115,7 +115,7 @@ def user_subscriptions_followers(user_id):
 def search_users():
     # Pega a página da query string, padrão 1
     page = request.args.get("page", 1)
-    per_page = request.args.get("per_page", 25)
+    per_page = request.args.get("per_page", 100)
     
     query = "status_colaborador:ativo type:user"
     zendesk_url = f"/api/v2/search.json?query={query}&page={page}&per_page={per_page}"
