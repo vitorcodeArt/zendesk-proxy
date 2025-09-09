@@ -127,7 +127,6 @@ def search_users():
 
     # Ajuste do next_page para passar pelo proxy
     if result_json.get("next_page"):
-        # substitui domínio original pelo proxy
         result_json["next_page"] = result_json["next_page"].replace(
             f"https://{ZENDESK_DOMAIN}", "https://zendesk-proxy-na06.onrender.com"
         )
