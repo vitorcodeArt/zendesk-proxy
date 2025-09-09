@@ -171,14 +171,17 @@ def get_user_field(field_id):
 @jwt_required()
 def upload_user_image():
     data = request.get_json()
+    print("📥 Recebido no proxy:", data)  # LOG PARA DEBUG
+
     if not data:
         return jsonify({"error": "JSON inválido"}), 400
 
     r = zendesk_request(
         "POST",
         "/api/v2/guide/user_images/uploads",
-        json={"user_image_upload": data}  # 👈 importante embutir nesse wrapper
+        json={"user_image_upload": data}
     )
+    print("📤 Resposta Zendesk:", r.status_code, r.text)  # LOG PARA DEBUG
     return jsonify(r.json()), r.status_code
 
 
