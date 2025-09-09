@@ -171,14 +171,20 @@ def get_user_field(field_id):
 @jwt_required()
 def upload_user_image():
     data = request.get_json()
+
+    # Verifica se veio o file_name
+    if not data.get("file_name"):
+        return jsonify({"error": "file_name é obrigatório"}), 400
+
     payload = {
-        "upload": {
-            "content_type": data.get("content_type"),
-            "file_size": data.get("file_size"),
-        }
+        "file_name": data.get("file_name"),
+        "content_type": data.get("content_type"),
+        "file_size": data.get("file_size"),
     }
+
     r = zendesk_request("POST", "/api/v2/guide/user_images/uploads", json=payload)
     return jsonify(r.json()), r.status_code
+
 
 
 
