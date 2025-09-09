@@ -6,6 +6,8 @@ from flask_jwt_extended import (
 )
 from flask_cors import CORS
 from dotenv import load_dotenv
+from urllib.parse import urlparse, parse_qs, urlencode
+
 
 # =========================
 # Configuração inicial
@@ -110,6 +112,7 @@ def user_subscriptions_followers(user_id):
     )
     return jsonify(r.json()), r.status_code
 
+
 @app.route("/api/search/users", methods=["GET"])
 @jwt_required()
 def search_users():
@@ -125,13 +128,18 @@ def search_users():
     if "results" not in result_json:
         result_json["results"] = []
 
-    # Ajuste do next_page para passar pelo proxy
+    # Ajuste seguro do next_page para passar pelo proxy
     if result_json.get("next_page"):
-        result_json["next_page"] = result_json["next_page"].replace(
-            f"https://{ZENDESK_DOMAIN}", "https://zendesk-proxy-na06.onrender"
-        )
+        parsed = urlparse(result_json["next_page"])
+        query_params = parse_qs(parsed.query)
+        next_page_number = query_params.get("page", [page])[0]
+        next_per_page = query_params.get("per_page", [per_page])[0]
+
+        # Reconstruir URL do proxy apenas com page e per_page
+        result_json["next_page"] = f"https://zendesk-proxy-na06.onrender.com/api/search/users?page={next_page_number}&per_page={next_per_page}"
 
     return jsonify(result_json), r.status_code
+
 
 
 
