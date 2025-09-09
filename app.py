@@ -64,6 +64,12 @@ def create_comment(post_id):
     return jsonify(r.json()), r.status_code
 
 
+@app.route("/api/community/posts/<int:post_id>/comments", methods=["GET"])
+@jwt_required()
+def get_comments(post_id):
+    r = zendesk_request("GET", f"/api/v2/community/posts/{post_id}/comments.json")
+    return jsonify(r.json()), r.status_code
+
 @app.route("/api/community/posts/<int:post_id>/votes", methods=["GET"])
 @jwt_required()
 def get_votes(post_id):
