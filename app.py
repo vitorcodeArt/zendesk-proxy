@@ -170,10 +170,15 @@ def get_user_field(field_id):
 @app.route("/api/guide/user_images/uploads", methods=["POST"])
 @jwt_required()
 def upload_user_image():
-    file = request.files.get("file")
-    if not file:
-        return jsonify({"error": "Arquivo não enviado"}), 400
-    r = zendesk_request("POST", "/api/v2/guide/user_images/uploads", files={"file": file})
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "JSON inválido"}), 400
+
+    r = zendesk_request(
+        "POST",
+        "/api/v2/guide/user_images/uploads",
+        json={"user_image_upload": data}  # 👈 importante embutir nesse wrapper
+    )
     return jsonify(r.json()), r.status_code
 
 
