@@ -113,20 +113,25 @@ def user_subscriptions_followers(user_id):
 @app.route("/api/search/users", methods=["GET"])
 @jwt_required()
 def search_users():
-    # Pega a página da query string, padrão 1
     page = request.args.get("page", 1)
     per_page = request.args.get("per_page", 100)
-    
     query = "status_colaborador:ativo type:user"
+
     zendesk_url = f"/api/v2/search.json?query={query}&page={page}&per_page={per_page}"
-    
     r = zendesk_request("GET", zendesk_url)
-    
-    # Garantir que o JSON tenha a chave 'results'
     result_json = r.json()
+
+    # Garantir que 'results' exista
     if "results" not in result_json:
         result_json["results"] = []
-    
+
+    # Ajuste do next_page para passar pelo proxy
+    if result_json.get("next_page"):
+        # substitui domínio original pelo proxy
+        result_json["next_page"] = result_json["next_page"].replace(
+            f"https://{ZENDESK_DOMAIN}", "https://zendesk-proxy-na06.onrender.com"
+        )
+
     return jsonify(result_json), r.status_code
 
 
