@@ -88,7 +88,7 @@ def get_badges():
     r = zendesk_request("GET", "/api/v2/gather/badges")
     return jsonify(r.json()), r.status_code
 
-@app.route("/api/gather/badge_assignments/user_id/<int:user_id>", methods=["GET"])
+@app.route("/api/gather/badge_assignments/user_id/<int:user_id>",methods=["GET"])
 @jwt_required()
 def get_badge_assignments(user_id):
     try:
@@ -187,11 +187,16 @@ def get_post():
     return jsonify(r.json()), r.status_code
 
 
-@app.route("/api/gather/badges/<int:badge_id>", methods=["GET"])
+@app.route("/api/gather/badges/<badge_id>", methods=["GET"])
 @jwt_required()
-def get_badge(badge_id):
-    r = zendesk_request("GET", f"/api/v2/gather/badges/{badge_id}")
-    return jsonify(r.json()), r.status_code
+def get_badge_by_id(badge_id):
+    try:
+        r = zendesk_request("GET", f"/api/v2/gather/badges/{badge_id}")
+        return jsonify(r.json()), r.status_code
+    except Exception as e:
+        print(f"Erro ao buscar badge {badge_id}: {e}")
+        return jsonify({"error": "Falha ao buscar badge"}), 502
+
 
 
 @app.route("/api/user_fields/<int:field_id>", methods=["GET"])
