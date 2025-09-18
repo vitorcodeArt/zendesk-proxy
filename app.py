@@ -75,11 +75,33 @@ def get_comments(post_id):
     r = zendesk_request("GET", f"/api/v2/community/posts/{post_id}/comments.json")
     return jsonify(r.json()), r.status_code
 
-@app.route("/api/community/posts/<int:post_id>/votes", methods=["GET"])
+@app.route("/api/gather/votes", methods=["GET"])
 @jwt_required()
-def get_votes(post_id):
-    r = zendesk_request("GET", f"/api/v2/community/posts/{post_id}/votes")
-    return jsonify(r.json()), r.status_code
+def get_all_votes():
+    try:
+        all_votes = []
+        url = "/api/v2/help_center/votes"
+
+        while url:
+            r = zendesk_request("GET", url)
+            data = r.json()
+
+            if "votes" in data:
+                all_votes.extend(data["votes"])
+            else:
+                break
+
+            # Tratar paginação
+            url = data.get("next_page")
+            if url and url.startswith("https://"):
+                url = url.replace("https://conecta.bcrcx.com", "")
+
+        return jsonify({"votes": all_votes}), 200
+
+    except Exception as e:
+        print(f"Erro ao buscar votes: {e}")
+        return jsonify({"error": "Falha ao buscar votos"}), 502
+
 
 
 @app.route("/api/gather/badges", methods=["GET"])
