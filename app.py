@@ -88,17 +88,32 @@ def get_badges():
     r = zendesk_request("GET", "/api/v2/gather/badges")
     return jsonify(r.json()), r.status_code
 
-@app.route("/api/gather/badge_assignments/user_id/<int:user_id>",methods=["GET"])
+@app.route("/api/gather/badge_assignments", methods=["GET"])
 @jwt_required()
-def get_badge_assignments(user_id):
+def get_all_badge_assignments():
     try:
-        r = zendesk_request("GET", f"/api/v2/gather/badge_assignments?user_id={user_id}")
-        data = r.json()
-        return jsonify(data), r.status_code
+        all_assignments = []
+        url = "/api/v2/gather/badge_assignments"
+
+        while url:
+            r = zendesk_request("GET", url)
+            data = r.json()
+
+            if "badge_assignments" in data:
+                all_assignments.extend(data["badge_assignments"])
+            else:
+                break
+
+            url = data.get("next_page")
+            if url and url.startswith("https://"):  
+                # cortar domínio para usar no zendesk_request
+                url = url.replace("https://conecta.bcrcx.com", "")
+
+        return jsonify({"badge_assignments": all_assignments}), 200
+
     except Exception as e:
         print(f"Erro ao buscar badge_assignments: {e}")
         return jsonify({"error": "Falha ao buscar badges"}), 502
-
 
 
 
