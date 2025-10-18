@@ -290,33 +290,31 @@ def create_post():
     r = zendesk_request("POST", "/api/v2/community/posts", json=data)
     return jsonify(r.json()), r.status_code
 
+
 @app.route("/api/tickets", methods=["POST"])
 @jwt_required()
 def create_ticket():
     """
     Cria um ticket no Zendesk.
-
-    Payload mínimo aceito:
-    {
-      "subject": "Assunto do ticket",
-      "description": "Descrição do problema" // ou { "comment": { "body": "..." } }
-    }
-
-    Campos opcionais suportados (serão repassados se fornecidos):
-      requester_id, requester {name,email}, assignee_id, group_id,
-      priority, type, tags [..], custom_fields [{id,value}],
-      collaborator_ids [..], organization_id, brand_id, external_id, due_at,
-      uploads [..] (tokens de upload adicionados ao comment)
+    Agora aceita payloads com ou sem a chave "ticket".
     """
+
     data = request.get_json() or {}
 
-    subject = data.get("subject")
-    # Aceita tanto description direta quanto comment.body
+    # 🔹 Se o payload vier no formato {"ticket": {...}}, usa diretamente
+    if "ticket" in data and isinstance(data["ticket"], dict):
+        ticket_data = data["ticket"]
+    else:
+        ticket_data = data  # formato plano
+
+    subject = ticket_data.get("subject")
     comment_body = None
-    if isinstance(data.get("comment"), dict):
-        comment_body = data["comment"].get("body")
+
+    # aceita comment.body ou description
+    if isinstance(ticket_data.get("comment"), dict):
+        comment_body = ticket_data["comment"].get("body")
     if not comment_body:
-        comment_body = data.get("description") or data.get("body")
+        comment_body = ticket_data.get("description") or ticket_data.get("body")
 
     if not subject or not comment_body:
         return jsonify({
@@ -325,47 +323,47 @@ def create_ticket():
             "hint": "Envie 'subject' e 'description' (ou 'comment.body')"
         }), 400
 
-    ticket: dict = {
+    # Monta o payload do ticket
+    ticket = {
         "subject": subject,
         "comment": {"body": comment_body}
     }
 
-    # uploads (anexos) devem ser incluídos dentro de comment.uploads
-    uploads = data.get("uploads")
+    # uploads (anexos)
+    uploads = ticket_data.get("uploads")
     if uploads:
         ticket["comment"]["uploads"] = uploads
 
-    # Copiar campos opcionais suportados
+    # Campos opcionais
     simple_fields = [
         "assignee_id", "group_id", "priority", "type",
         "external_id", "due_at", "brand_id", "organization_id",
-        "requester_id"
+        "requester_id", "ticket_form_id"
     ]
     list_fields = ["tags", "collaborator_ids"]
-    object_fields = ["requester"]  # { name, email }
+    object_fields = ["requester"]
+    custom_fields = ticket_data.get("custom_fields") or ticket_data.get("fields")
 
     for key in simple_fields:
-        if key in data and data.get(key) is not None:
-            ticket[key] = data.get(key)
+        if key in ticket_data and ticket_data.get(key) is not None:
+            ticket[key] = ticket_data.get(key)
 
     for key in list_fields:
-        if key in data and isinstance(data.get(key), list):
-            ticket[key] = data.get(key)
+        if key in ticket_data and isinstance(ticket_data.get(key), list):
+            ticket[key] = ticket_data.get(key)
 
     for key in object_fields:
-        if key in data and isinstance(data.get(key), dict):
-            ticket[key] = data.get(key)
+        if key in ticket_data and isinstance(ticket_data.get(key), dict):
+            ticket[key] = ticket_data.get(key)
 
-    # custom_fields: lista de objetos {id, value}
-    if isinstance(data.get("custom_fields"), list):
-        ticket["custom_fields"] = data.get("custom_fields")
+    if isinstance(custom_fields, list):
+        ticket["custom_fields"] = custom_fields
 
     payload = {"ticket": ticket}
 
     r = zendesk_request("POST", "/api/v2/tickets.json", json=payload)
-    # Retorna JSON quando existir, senão apenas status
-    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
 # =========================
