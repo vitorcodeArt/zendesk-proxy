@@ -366,6 +366,20 @@ def create_ticket():
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
+@app.route("/api/custom_objects/<string:object_key>/records", methods=["GET"])
+@jwt_required()
+def get_custom_object_records(object_key):
+    """
+    Consulta registros de um Custom Object no Zendesk.
+
+    Exemplo: GET /api/custom_objects/produto_lojinha/records
+    Suporta query params (paginação/filtros) que serão repassados ao Zendesk.
+    """
+    params = dict(request.args) if request.args else None
+    r = zendesk_request("GET", f"/api/v2/custom_objects/{object_key}/records", params=params)
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+
 # =========================
 # Inicialização
 # =========================
