@@ -253,6 +253,57 @@ def get_user_field(field_id):
     r = zendesk_request("GET", f"/api/v2/user_fields/{field_id}")
     return jsonify(r.json()), r.status_code
 
+@app.route("/api/users/<int:user_id>/user_fields/<int:field_id>", methods=["GET"])
+@jwt_required()
+def get_user_field_value(user_id, field_id):
+    """Retorna o valor de um campo customizado para um usuário específico."""
+    field_def_r = zendesk_request("GET", f"/api/v2/user_fields/{field_id}")
+    if field_def_r.status_code != 200:
+        return jsonify({"error": "Campo não encontrado"}), field_def_r.status_code
+    field_key = field_def_r.json().get("user_field", {}).get("key")
+    if not field_key:
+        return jsonify({"error": "Não foi possível obter o key do campo"}), 500
+
+    user_r = zendesk_request("GET", f"/api/v2/users/{user_id}.json")
+    if user_r.status_code != 200:
+        return jsonify({"error": "Usuário não encontrado"}), user_r.status_code
+
+    user_json = user_r.json()
+    value = (user_json.get("user", {}).get("user_fields", {}) or {}).get(field_key)
+
+    return jsonify({
+        "field_id": field_id,
+        "field_key": field_key,
+        "value": value
+    }), 200
+
+@app.route("/api/users/<int:user_id>/user_fields/<int:field_id>", methods=["PUT", "PATCH"])
+@jwt_required()
+def update_user_field_value(user_id, field_id):
+    """Atualiza o valor de um campo customizado de usuário. Payload: {"value": <novo_valor>}"""
+    body = request.get_json() or {}
+    new_value = body.get("value")
+    if new_value is None:
+        return jsonify({"error": "Campo 'value' é obrigatório"}), 400
+
+    field_def_r = zendesk_request("GET", f"/api/v2/user_fields/{field_id}")
+    if field_def_r.status_code != 200:
+        return jsonify({"error": "Campo não encontrado"}), field_def_r.status_code
+    field_key = field_def_r.json().get("user_field", {}).get("key")
+    if not field_key:
+        return jsonify({"error": "Não foi possível obter o key do campo"}), 500
+
+    payload = {
+        "user": {
+            "user_fields": {
+                field_key: new_value
+            }
+        }
+    }
+
+    r = zendesk_request("PUT", f"/api/v2/users/{user_id}.json", json=payload)
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
 
 @app.route("/api/guide/user_images/uploads", methods=["POST"])
 @jwt_required()
@@ -369,14 +420,42 @@ def create_ticket():
 @app.route("/api/custom_objects/<string:object_key>/records", methods=["GET"])
 @jwt_required()
 def get_custom_object_records(object_key):
-    """
-    Consulta registros de um Custom Object no Zendesk.
 
-    Exemplo: GET /api/custom_objects/produto_lojinha/records
-    Suporta query params (paginação/filtros) que serão repassados ao Zendesk.
-    """
     params = dict(request.args) if request.args else None
     r = zendesk_request("GET", f"/api/v2/custom_objects/{object_key}/records", params=params)
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+@app.route("/api/custom_objects/<string:object_key>/records", methods=["POST"])
+@jwt_required()
+def create_custom_object_record(object_key):
+    """Cria um record em um objeto customizado.
+    Payload esperado: {"record": {"external_id": "...", "data": { ... }}}"""
+    data = request.get_json() or {}
+    if "record" not in data:
+        return jsonify({"error": "Payload deve conter 'record'"}), 400
+    r = zendesk_request("POST", f"/api/v2/custom_objects/{object_key}/records", json=data)
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+@app.route("/api/custom_objects/<string:object_key>/records/<string:record_id>", methods=["GET"])
+@jwt_required()
+def get_custom_object_record(object_key, record_id):
+    r = zendesk_request("GET", f"/api/v2/custom_objects/{object_key}/records/{record_id}")
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+@app.route("/api/custom_objects/<string:object_key>/records/<string:record_id>", methods=["PUT"])
+@jwt_required()
+def update_custom_object_record(object_key, record_id):
+    """Atualiza um record existente. Mesmo formato de criação."""
+    data = request.get_json() or {}
+    if "record" not in data:
+        return jsonify({"error": "Payload deve conter 'record'"}), 400
+    r = zendesk_request("PUT", f"/api/v2/custom_objects/{object_key}/records/{record_id}", json=data)
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+@app.route("/api/custom_objects/<string:object_key>/records/<string:record_id>", methods=["DELETE"])
+@jwt_required()
+def delete_custom_object_record(object_key, record_id):
+    r = zendesk_request("DELETE", f"/api/v2/custom_objects/{object_key}/records/{record_id}")
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
