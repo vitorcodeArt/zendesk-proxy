@@ -1,5 +1,7 @@
 import os
 import requests
+
+from flask import make_response
 from flask import Flask, jsonify, request
 from flask_jwt_extended import (
     create_access_token, jwt_required, get_jwt_identity, JWTManager
@@ -227,6 +229,25 @@ def delete_vote(vote_id):
 def upvote_post(post_id):
     r = zendesk_request("POST", f"/api/v2/community/posts/{post_id}/up")
     return jsonify(r.json()), r.status_code
+
+@app.route("/api/help_center/votes", methods=["GET", "OPTIONS"])
+@jwt_required(optional=True)
+def proxy_help_center_votes():
+    # Preflight
+    if request.method == "OPTIONS":
+        resp = make_response(("", 200))
+        resp.headers["Access-Control-Allow-Origin"] = "https://conecta.bcrcx.com"
+        resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        return resp
+
+    params = dict(request.args) if request.args else None
+    r = zendesk_request("GET", "/api/v2/help_center/votes", params=params)
+    resp = make_response((r.text, r.status_code))
+    resp.headers["Access-Control-Allow-Origin"] = "https://conecta.bcrcx.com"
+    resp.headers["Access-Control-Allow-Credentials"] = "true"
+    return resp
 
 @app.route("/api/community/posts", methods=["GET"])
 @jwt_required()
