@@ -429,10 +429,24 @@ def get_custom_object_records(object_key):
 @jwt_required()
 def create_custom_object_record(object_key):
     """Cria um record em um objeto customizado.
-    Payload esperado: {"record": {"external_id": "...", "data": { ... }}}"""
+    Novo payload esperado pelo Zendesk:
+    {
+      "custom_object_record": {
+        "custom_object_fields": { ... },
+        "name": "..."
+      }
+    }
+    """
     data = request.get_json() or {}
-    if "record" not in data:
-        return jsonify({"error": "Payload deve conter 'record'"}), 400
+    record = data.get("custom_object_record")
+    if not isinstance(record, dict):
+        return jsonify({"error": "Payload deve conter 'custom_object_record' (objeto)"}), 400
+    # Valida campos mínimos
+    if "custom_object_fields" not in record or not isinstance(record.get("custom_object_fields"), dict):
+        return jsonify({"error": "'custom_object_record.custom_object_fields' é obrigatório e deve ser objeto"}), 400
+    if "name" not in record:
+        return jsonify({"error": "'custom_object_record.name' é obrigatório"}), 400
+
     r = zendesk_request("POST", f"/api/v2/custom_objects/{object_key}/records", json=data)
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
@@ -445,10 +459,23 @@ def get_custom_object_record(object_key, record_id):
 @app.route("/api/custom_objects/<string:object_key>/records/<string:record_id>", methods=["PUT"])
 @jwt_required()
 def update_custom_object_record(object_key, record_id):
-    """Atualiza um record existente. Mesmo formato de criação."""
+    """Atualiza um record existente.
+    Payload esperado (mesmo da criação):
+    {
+      "custom_object_record": {
+        "custom_object_fields": { ... },
+        "name": "..."
+      }
+    }
+    Campos adicionais suportados pelo Zendesk podem ser passados dentro de custom_object_record.
+    """
     data = request.get_json() or {}
-    if "record" not in data:
-        return jsonify({"error": "Payload deve conter 'record'"}), 400
+    record = data.get("custom_object_record")
+    if not isinstance(record, dict):
+        return jsonify({"error": "Payload deve conter 'custom_object_record' (objeto)"}), 400
+    if "custom_object_fields" in record and not isinstance(record.get("custom_object_fields"), dict):
+        return jsonify({"error": "'custom_object_record.custom_object_fields' deve ser objeto"}), 400
+
     r = zendesk_request("PUT", f"/api/v2/custom_objects/{object_key}/records/{record_id}", json=data)
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
