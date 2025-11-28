@@ -227,8 +227,14 @@ def delete_vote(vote_id):
 @app.route("/api/community/posts/<int:post_id>/up", methods=["POST"])
 @jwt_required()
 def upvote_post(post_id):
-    r = zendesk_request("POST", f"/api/v2/community/posts/{post_id}/up")
-    return jsonify(r.json()), r.status_code
+    # Encaminha o payload recebido do frontend para a Zendesk
+    data = request.get_json() or {}
+    r = zendesk_request("POST", f"/api/v2/community/posts/{post_id}/up", json=data)
+    # Algumas respostas podem não vir em JSON; retorna texto bruto quando necessário
+    try:
+        return jsonify(r.json()), r.status_code
+    except Exception:
+        return (r.text, r.status_code)
 
 @app.route("/api/help_center/votes", methods=["GET", "OPTIONS"])
 @jwt_required(optional=True)
