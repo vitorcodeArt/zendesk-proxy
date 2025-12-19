@@ -20,9 +20,15 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 jwt = JWTManager(app)
 CORS(app)  # Permite CORS de qualquer origem (para teste)
 
+# Origens permitidas para o proxy
+ALLOWED_ORIGINS = {
+    "https://conecta.bcrcx.com",
+    "https://institucional.bcrcx.com",
+}
+
 CORS(
     app,
-    resources={r"/api/*": {"origins": "https://conecta.bcrcx.com"}},
+    resources={r"/api/*": {"origins": list(ALLOWED_ORIGINS)}},
     supports_credentials=True,
 )
 
@@ -242,7 +248,9 @@ def proxy_help_center_votes():
     # Preflight
     if request.method == "OPTIONS":
         resp = make_response(("", 200))
-        resp.headers["Access-Control-Allow-Origin"] = "https://conecta.bcrcx.com"
+        origin = request.headers.get("Origin")
+        if origin in ALLOWED_ORIGINS:
+            resp.headers["Access-Control-Allow-Origin"] = origin
         resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
         resp.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         resp.headers["Access-Control-Allow-Credentials"] = "true"
@@ -251,7 +259,9 @@ def proxy_help_center_votes():
     params = dict(request.args) if request.args else None
     r = zendesk_request("GET", "/api/v2/help_center/votes", params=params)
     resp = make_response((r.text, r.status_code))
-    resp.headers["Access-Control-Allow-Origin"] = "https://conecta.bcrcx.com"
+    origin = request.headers.get("Origin")
+    if origin in ALLOWED_ORIGINS:
+        resp.headers["Access-Control-Allow-Origin"] = origin
     resp.headers["Access-Control-Allow-Credentials"] = "true"
     return resp
 
@@ -441,6 +451,13 @@ def create_ticket():
 
     r = zendesk_request("POST", "/api/v2/tickets.json", json=payload)
 
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+
+@app.route("/api/v2/tickets/<int:ticket_id>", methods=["GET"])  # rota solicitada
+@jwt_required()
+def get_ticket_v2(ticket_id):
+    r = zendesk_request("GET", f"/api/v2/tickets/{ticket_id}.json")
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
