@@ -461,6 +461,30 @@ def get_ticket_v2(ticket_id):
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
+@app.route("/api/v2/tickets/<int:ticket_id>", methods=["PUT", "PATCH"])
+@jwt_required()
+def update_ticket_v2(ticket_id):
+    """Atualiza um ticket no Zendesk.
+
+    Aceita payloads nos formatos:
+    - {"ticket": { ...campos suportados pelo Zendesk... }}
+    - { ...campos suportados... } (formato plano, será encapsulado em {"ticket": ...})
+
+    Observações:
+    - Mesmo quando a chamada ao proxy vier como PATCH, a requisição ao Zendesk será enviada via PUT,
+      pois o endpoint de atualização de ticket utiliza PUT.
+    """
+
+    data = request.get_json() or {}
+    if not data:
+        return jsonify({"error": "Body JSON é obrigatório"}), 400
+
+    payload = data if isinstance(data.get("ticket"), dict) else {"ticket": data}
+
+    r = zendesk_request("PUT", f"/api/v2/tickets/{ticket_id}.json", json=payload)
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+
 @app.route("/api/custom_objects/<string:object_key>/records", methods=["GET"])
 @jwt_required()
 def get_custom_object_records(object_key):
