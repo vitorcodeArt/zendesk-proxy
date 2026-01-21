@@ -215,12 +215,28 @@ def get_user(user_id):  # <- agora recebe direto do path
     return jsonify(r.json()), r.status_code
 
 
+@app.route("/api/v2/users/<int:user_id>/organization_memberships.json", methods=["GET"])
+@jwt_required()
+def get_user_organization_memberships(user_id):
+    """Proxy para GET /api/v2/users/{user_id}/organization_memberships.json no Zendesk."""
+    r = zendesk_request("GET", f"/api/v2/users/{user_id}/organization_memberships.json")
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+
 @app.route("/api/users/<int:user_id>", methods=["PUT"])
 @jwt_required()
 def update_user(user_id):
     data = request.get_json()
     r = zendesk_request("PUT", f"/api/v2/users/{user_id}.json", json=data)
     return jsonify(r.json()), r.status_code
+
+
+@app.route("/api/v2/organizations/<int:organization_id>/organization_memberships.json", methods=["GET"])
+@jwt_required()
+def get_organization_memberships(organization_id):
+    """Proxy para GET /api/v2/organizations/{organization_id}/organization_memberships.json no Zendesk."""
+    r = zendesk_request("GET", f"/api/v2/organizations/{organization_id}/organization_memberships.json")
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
 @app.route("/api/help_center/votes/<int:vote_id>", methods=["DELETE"])
