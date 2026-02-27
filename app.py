@@ -239,6 +239,34 @@ def get_organization_memberships(organization_id):
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
+@app.route("/api/v2/organizations", methods=["GET"])
+@jwt_required()
+def get_organizations():
+    """Proxy para GET /api/v2/organizations.json no Zendesk."""
+    params = dict(request.args) if request.args else None
+    r = zendesk_request("GET", "/api/v2/organizations.json", params=params)
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+
+@app.route("/api/v2/organizations/<int:organization_id>", methods=["PUT"])
+@jwt_required()
+def update_organization(organization_id):
+    """Proxy para PUT /api/v2/organizations/{organization_id}.json no Zendesk.
+
+    Aceita payloads nos formatos:
+    - {"organization": { ...campos da organização... }}
+    - { ...campos... } (formato plano, será encapsulado em {"organization": ...})
+    """
+    data = request.get_json() or {}
+    if not data:
+        return jsonify({"error": "Body JSON é obrigatório"}), 400
+
+    payload = data if isinstance(data.get("organization"), dict) else {"organization": data}
+
+    r = zendesk_request("PUT", f"/api/v2/organizations/{organization_id}.json", json=payload)
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+
 @app.route("/api/help_center/votes/<int:vote_id>", methods=["DELETE"])
 @jwt_required()
 def delete_vote(vote_id):
