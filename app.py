@@ -239,6 +239,15 @@ def get_organization_memberships(organization_id):
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
+@app.route("/api/v2/organizations/<int:organization_id>/users", methods=["GET"])
+@jwt_required()
+def get_organization_users(organization_id):
+    """Proxy para GET /api/v2/organizations/{organization_id}/users.json no Zendesk."""
+    params = dict(request.args) if request.args else None
+    r = zendesk_request("GET", f"/api/v2/organizations/{organization_id}/users.json", params=params)
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+
 @app.route("/api/v2/organizations", methods=["GET"])
 @jwt_required()
 def get_organizations():
