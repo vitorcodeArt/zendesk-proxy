@@ -257,6 +257,14 @@ def get_organizations():
     return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
 
 
+@app.route("/api/v2/organizations/<int:organization_id>", methods=["GET"])
+@jwt_required()
+def get_organization(organization_id):
+    """Proxy para GET /api/v2/organizations/{organization_id}.json no Zendesk."""
+    r = zendesk_request("GET", f"/api/v2/organizations/{organization_id}.json")
+    return jsonify(r.json() if r.text else {"status": r.status_code}), r.status_code
+
+
 @app.route("/api/v2/organizations/<int:organization_id>", methods=["PUT"])
 @jwt_required()
 def update_organization(organization_id):
