@@ -24,6 +24,7 @@ CORS(app)  # Permite CORS de qualquer origem (para teste)
 ALLOWED_ORIGINS = {
     "https://conecta.bcrcx.com",
     "https://institucional.bcrcx.com",
+    "https://consultoria.bcrcx.com"
 }
 
 CORS(
